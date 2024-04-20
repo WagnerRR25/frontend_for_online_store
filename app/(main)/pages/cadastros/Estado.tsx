@@ -1,3 +1,4 @@
+'use client';
 import { EstadoService } from "@/demo/service/cadastros/EstadoService";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
@@ -10,7 +11,7 @@ import { classNames } from "primereact/utils";
 import React, { useEffect, useRef, useState } from "react";
 
         interface EstadoItem {
-        id: any;
+        id?: any;
         nome: string;
         sigla: string;
         }
@@ -28,8 +29,8 @@ import React, { useEffect, useRef, useState } from "react";
         const [objeto, setObjeto] = useState<EstadoItem>(objetoNovo);
         const [submitted, setSubmitted] = useState(false);
         const [globalFilter, setGlobalFilter] = useState('');
-        const toast = useRef(null);
-        const dt = useRef(null);
+        const toast = useRef<Toast>(null);
+        const dt = useRef<DataTable<any>>(null);
         const objetoService = new EstadoService();
 
         useEffect(() => {
@@ -69,9 +70,9 @@ import React, { useEffect, useRef, useState } from "react";
                 });
             } else {
                 objetoService.inserir(_objeto).then(data => {
-                if (toast.current) {
-                    toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000});
-                }
+
+                    toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000});
+
                 });
             }
             setObjetoDialog(false);
@@ -99,10 +100,10 @@ import React, { useEffect, useRef, useState } from "react";
             });
         }
 
-        const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, name: string) => {
+        const onInputChange = (e: React.ChangeEvent<HTMLInputElement>, name: keyof EstadoItem) => {
             const val = (e.target && e.target.value) || '';
             let _objeto = { ...objeto };
-            _objeto[`${name}`] = val;
+            _objeto[name] = val;
             setObjeto(_objeto);
         }
 
@@ -110,7 +111,7 @@ import React, { useEffect, useRef, useState } from "react";
             return (
             <div className="my-2">
                 <Button label="Novo Estado" icon="pi pi-plus" severity="success" className="mr-2" onClick={openNew} />
-                <Button label="Delete" icon="pi pi-trash" severity="danger" onClick={objetoConfirmDelete} disabled={!selectedObjetos || !(selectedObjetos as any).length} />
+                <Button label="Delete" icon="pi pi-trash" severity="danger" onClick={deleteObjeto} disabled={!objetos || !(objetos as any).length} />
             </div>
             );
         }
@@ -249,6 +250,10 @@ import React, { useEffect, useRef, useState } from "react";
             </div>
         </div>
     );
+};
+
+const comparisonFn = function (prevProps: { lovation: { pathname: any; }; }, nextProps: { location: { pathname: any; }; }) {
+    return prevProps.lovation.pathname === nextProps.location.pathname;
 };
 
 export default Estado;
