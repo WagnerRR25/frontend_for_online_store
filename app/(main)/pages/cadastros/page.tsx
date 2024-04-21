@@ -9,19 +9,16 @@ import { Toast } from "primereact/toast";
 import { Toolbar } from "primereact/toolbar";
 import { classNames } from "primereact/utils";
 import React, { useEffect, useRef, useState } from "react";
+import { EstadoItem } from '@/types';
 
-        interface EstadoItem {
-        id?: any;
-        nome: string;
-        sigla: string;
-        }
 
-        const Estado = () => {
-        const objetoNovo: EstadoItem = {
-            id: null,
-            nome: '',
-            sigla: ''
-        };
+const Cadastro = () => {
+    let objetoNovo: EstadoItem.objeto = {
+        id: '',
+        name: '',
+        sigla: '',
+        inventoryStatus: 'INSTOCK'
+    };
 
         const [objetos, setObjetos] = useState<EstadoItem[]>([]);
         const [objetoDialog, setObjetoDialog] = useState(false);
@@ -84,6 +81,10 @@ import React, { useEffect, useRef, useState } from "react";
             setObjeto({ ...objeto });
             setObjetoDialog(true);
         }
+
+        const exportCSV = () => {
+            dt.current?.exportCSV();
+        };
 
         const confirmDeleteObjeto = (objeto: EstadoItem) => {
             setObjeto(objeto);
@@ -252,8 +253,8 @@ import React, { useEffect, useRef, useState } from "react";
     );
 };
 
-const comparisonFn = function (prevProps: { lovation: { pathname: any; }; }, nextProps: { location: { pathname: any; }; }) {
-    return prevProps.lovation.pathname === nextProps.location.pathname;
+const comparisonFn = function (prevProps: { location: { pathname: any; }; }, nextProps: { location: { pathname: any; }; }) {
+    return prevProps.location.pathname === nextProps.location.pathname;
 };
 
-export default Estado;
+export default React.memo(Cadastro, comparisonFn);
