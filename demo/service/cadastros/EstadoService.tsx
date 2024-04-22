@@ -1,21 +1,32 @@
 import axios from 'axios';
 
+export const axiosInstance = axios.create({
+    baseURL: "http://localhost:8080"
+})
+
 export class EstadoService {
+    static excluirEstado(id: any) {
+        throw new Error("Method not implemented.");
+    }
+    static inserirEstado(_objeto: any) {
+        throw new Error("Method not implemented.");
+    }
+    static alterar(_objeto: any) {
+        throw new Error("Method not implemented.");
+    }
+    buscarTodos() {
+        return axiosInstance.get('/api/estado/');
+    }
 
-    url = process.env.REACT_APP_URL_API;
-     estados() {
-        return axios.get(this.url+'/estado/');
-     }
+    inserir(estado: any) {
+        return axiosInstance.post('/api/estado/', estado);
+    }
 
-     inserir(objeto: any) {
-        return axios.post(this.url+'/estado/', objeto);
-     }
+    alterar(estado: any) {
+        return axiosInstance.put('/api/estado/', estado);
+    }
 
-     alterar(objeto: any) {
-        return axios.put(this.url+'/estado/',objeto);
-     }
-
-     excluir(id: string) {
-        return axios.delete(this.url+'/estado/'+id)
-     }
+    excluir(id: string) {
+        return axiosInstance.delete(`/api/estado/${id}`);
+    }
 }

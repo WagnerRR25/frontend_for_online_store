@@ -59,5 +59,5 @@ export type {
     AppMailReplyProps,
     AppMailProps,
     AppMenuItem,
-    EstadoItem
+    Estado
 };
