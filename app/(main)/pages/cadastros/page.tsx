@@ -64,23 +64,24 @@ const Cadastros = () => {
     const saveObjeto = async () => {
         setSubmitted(true);
 
-        if (objeto.nome.trim()) {
-            try {
-                let _objeto = { ...objeto };
-                if (objeto.id) {
-                    await EstadoService.alterar(_objeto);
-                    if (toast.current) {
-                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização do Estado', life: 3000});
-                    }
-                } else {
-                    await EstadoService.inserirEstado(_objeto);
-                    if (toast.current) {
-                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000});
+                if (objeto.nome.trim()) {
+                    try {
+                        let _objeto = { ...objeto };
+                        if (objeto.id) {
+                            EstadoService.alterarEstado(_objeto);
+                            if (toast.current) {
+                                toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização do Estado', life: 3000});
+                            }
+                        } else {
+                            EstadoService.inserirEstado(_objeto);
+                            if (toast.current) {
+                                toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000});
                     }
                 }
                 setObjetos([]);
                 setObjetoDialog(false);
                 setObjeto(objetoNovo);
+                window.location.reload();
             } catch (error) {
                 console.error('Erro ao salvar estado:', error);
                 if (toast.current) {
@@ -106,12 +107,13 @@ const Cadastros = () => {
 
     const deleteObjeto = async () => {
         try {
-            await EstadoService.excluirEstado(objeto.id);
+            EstadoService.excluirEstado(objeto.id);
             if (toast.current) {
                 toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000});
             }
             setObjetos([]);
             setObjetoDeleteDialog(false);
+            window.location.reload();
         } catch (error) {
             console.error('Erro ao excluir estado:', error);
             if (toast.current) {
@@ -174,7 +176,7 @@ const Cadastros = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Manage objetos</h5>
+            <h5 className="m-0">Estados</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.currentTarget.value)} placeholder="Search..." />
@@ -212,7 +214,7 @@ const Cadastros = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} objetos"
+                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} Estados"
                         globalFilter={globalFilter}
                         emptyMessage="Sem objetos cadastrados."
                         header={header}

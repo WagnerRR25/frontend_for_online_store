@@ -5,15 +5,18 @@ export const axiosInstance = axios.create({
 })
 
 export class EstadoService {
+    static alterarEstado(_objeto: any) {
+        return axiosInstance.put('/api/estado/', _objeto);
+    }
+
     static excluirEstado(id: any) {
-        throw new Error("Method not implemented.");
+        return axiosInstance.delete(`/api/estado/${id}`);
     }
+
     static inserirEstado(_objeto: any) {
-        throw new Error("Method not implemented.");
+        return axiosInstance.post('/api/estado/', _objeto);
     }
-    static alterar(_objeto: any) {
-        throw new Error("Method not implemented.");
-    }
+
     buscarTodos() {
         return axiosInstance.get('/api/estado/');
     }
