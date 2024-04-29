@@ -1,20 +1,17 @@
 'use client';
 
-import { CidadeService } from "@/demo/service/cadastros/CidadeService";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EstadoService } from "@/demo/service/cadastros/EstadoService";
-import { Cidade, Estado } from "@/types";
-import { error } from "console";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
 import { Dialog } from "primereact/dialog";
-import { FileUpload } from "primereact/fileupload";
 import { InputText } from "primereact/inputtext";
 import { Toast } from "primereact/toast";
 import { Toolbar } from "primereact/toolbar";
 import { classNames } from "primereact/utils";
-import React, { useMemo } from "react";
-import { useEffect, useRef, useState } from "react";
+import { Cidade, Estado } from "@/types";
+import { CidadeService } from "@/demo/service/cadastros/CidadeService";
 
 const Cadastros = () => {
     const objetoNovo: Estado = {
@@ -32,11 +29,13 @@ const Cadastros = () => {
     const [globalFilter, setGlobalFilter] = useState('');
     const toast = useRef<Toast>(null);
     const dt = useRef<DataTable<any>>(null);
+    const [estadoDialog, setEstadoDialog] = useState(false);
     // const serviceEstado = new EstadoService();
     const serviceEstado = useMemo(() => new EstadoService(), []);
     const cidadeService = useMemo(() => new CidadeService(), []);
     const [estados, setEstados] = useState<Estado[] | null>(null);
     const [cidades, setCidades] = useState<Cidade[] | null>(null);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -52,26 +51,26 @@ const Cadastros = () => {
         };
 
         fetchData();
-    }, []);
+    }, [EstadoService, CidadeService]);
 
     useEffect(() => {
-        if(estadoDialog){
-            EstadoService.buscarTodos()
-            .then((response)=> setEstados(response))
-            .catch(error) => {
-                console.log(error);
-                if (toast.current) {
-                    toast.current.show({ severity: 'info', summary: 'Erro!', detail: 'Erro ao carregar a lista de Cidades', life: 3000 });
-            });
-            CidadeService.buscarTodos()
-            .then((response)=> Cidade(response))
-            .catch(error) => {
-                console.log(error);
-                if (toast.current) {
-                    toast.current.show({ severity: 'info', summary: 'Erro!', detail: 'Erro ao carregar a lista de Cidades', life: 3000 });
-            });
-        }
-    },
+        const fetchData = async () => {
+            if (objetoDialog) {
+                try {
+                    const response = await cidadeService.buscarTodos();
+                    setObjeto(response);
+                } catch (error) {
+                    console.error(error);
+                    if (toast.current) {
+                        toast.current.show({ severity: 'info', summary: 'Erro!', detail: 'Erro ao carregar a lista de Estados', life: 3000 });
+                    }
+                }
+                
+            }
+        };
+
+        fetchData();
+    }, [objetoDialog]);
 
     const openNew = () => {
         setObjeto(objetoNovo);
@@ -95,20 +94,19 @@ const Cadastros = () => {
             try {
                 let _objeto = { ...objeto };
                 if (objeto.id) {
-                    EstadoService.alterarEstado(_objeto);
+                    EstadoService.alterar(_objeto);
                     if (toast.current) {
-                        toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Atualização do Estado', life: 3000 });
+                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização do Estado', life: 3000});
                     }
                 } else {
-                    EstadoService.inserirEstado(_objeto);
+                    await EstadoService.inserirEstado(_objeto);
                     if (toast.current) {
-                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000 });
+                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000});
                     }
                 }
                 setObjetos([]);
                 setObjetoDialog(false);
                 setObjeto(objetoNovo);
-                window.location.reload();
             } catch (error) {
                 console.error('Erro ao salvar estado:', error);
                 if (toast.current) {
@@ -134,13 +132,12 @@ const Cadastros = () => {
 
     const deleteObjeto = async () => {
         try {
-            EstadoService.excluirEstado(objeto.id);
+            await EstadoService.excluirEstado(objeto.id);
             if (toast.current) {
-                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000 });
+                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000});
             }
             setObjetos([]);
             setObjetoDeleteDialog(false);
-            window.location.reload();
         } catch (error) {
             console.error('Erro ao excluir estado:', error);
             if (toast.current) {
@@ -162,15 +159,6 @@ const Cadastros = () => {
                 <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
                 <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteObjeto} disabled={!objetos || !objetos.length} />
             </div>
-        );
-    };
-
-    const rightToolbarTemplate = () => {
-        return (
-            <React.Fragment>
-                <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} chooseLabel="Import" className="mr-2 inline-block" />
-                <Button label="Export" icon="pi pi-upload" severity="help" onClick={exportCSV} />
-            </React.Fragment>
         );
     };
 
@@ -212,7 +200,7 @@ const Cadastros = () => {
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Estados</h5>
+            <h5 className="m-0">Manage objetos</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.currentTarget.value)} placeholder="Search..." />
@@ -250,7 +238,7 @@ const Cadastros = () => {
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} Estados"
+                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} objetos"
                         globalFilter={globalFilter}
                         emptyMessage="Sem objetos cadastrados."
                         header={header}

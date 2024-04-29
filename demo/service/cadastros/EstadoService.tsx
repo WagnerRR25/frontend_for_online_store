@@ -5,6 +5,9 @@ export const axiosInstance = axios.create({
 })
 
 export class EstadoService {
+    static alterar(_objeto: any) {
+        throw new Error("Method not implemented.");
+    }
     static buscarTodos() {
         throw new Error("Method not implemented.");
     }
