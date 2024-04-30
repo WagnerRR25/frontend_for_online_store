@@ -12,11 +12,10 @@ import { Toolbar } from "primereact/toolbar";
 import { classNames } from "primereact/utils";
 import { useEffect, useRef, useState } from "react";
 
-const Cadastros = () => {
+const Cidade = () => {
     const objetoNovo: Cidade = {
         id: '',
         nome: '',
-        sigla: '',
         inventoryStatus: 'INSTOCK'
     };
 
@@ -274,4 +273,4 @@ const Cadastros = () => {
     );
 };
 
-export default Cadastros;
+export default Cidade;

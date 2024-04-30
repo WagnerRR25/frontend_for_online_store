@@ -11,6 +11,11 @@ export class EstadoService {
     static buscarTodos() {
         throw new Error("Method not implemented.");
     }
+
+    static inserirCidade(_objeto: any) {
+        return axiosInstance.post('/api/cidade/', _objeto);
+    }
+    
     static alterarEstado(_objeto: any) {
         return axiosInstance.put('/api/estado/', _objeto);
     }
