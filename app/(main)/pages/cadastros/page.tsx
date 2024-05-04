@@ -1,17 +1,17 @@
-'use client';
+'useClient'
 
-import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { EstadoService } from "@/demo/service/cadastros/EstadoService";
-import { Button } from "primereact/button";
-import { Column } from "primereact/column";
-import { Dialog } from "primereact/dialog";
-import { InputText } from "primereact/inputtext";
-import { Toast } from "primereact/toast";
-import { Toolbar } from "primereact/toolbar";
-import { classNames } from "primereact/utils";
-import { Cidade, Estado } from "@/types";
-import { CidadeService } from "@/demo/service/cadastros/CidadeService";
-import { DataTable } from "primereact/datatable";
+import { EstadoService } from '@/demo/service/cadastro/EstadoService';
+import React, { useEffect, useRef, useState } from 'react';
+import { Estado } from '@/types';
+import { Button } from 'primereact/button';
+import { Column } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
+import { Dialog } from 'primereact/dialog';
+import { InputText } from 'primereact/inputtext';
+import { Toast } from 'primereact/toast';
+import { Toolbar } from 'primereact/toolbar';
+import { classNames } from 'primereact/utils';
+
 
 const Cadastros = () => {
     const objetoNovo: Estado = {
@@ -21,31 +21,21 @@ const Cadastros = () => {
         inventoryStatus: 'INSTOCK'
     };
 
-    const objetoNovoCidade: Cidade = {
-        id: '',
-        nome: '',
-        inventoryStatus: 'INSTOCK'
-    };
-
-    const [estados, setEstados] = useState<Estado[]>([]);
-    const [cidades, setCidades] = useState<Cidade[]>([]);
-    const [objetoDialogEstado, setObjetoDialogEstado] = useState(false);
-    const [objetoDialogCidade, setObjetoDialogCidade] = useState(false);
-    const [objetoDeleteDialogEstado, setObjetoDeleteDialogEstado] = useState(false);
-    const [objetoDeleteDialogCidade, setObjetoDeleteDialogCidade] = useState(false);
-    const dtEstado = useRef<DataTable>(null);
-    const dtCidade = useRef<DataTable>(null);
+    const estadoService = new EstadoService();
     const toast = useRef<Toast>(null);
+    const dt = useRef<DataTable<any>>(null);
+    const [objetos, setObjetos] = useState<Estado[]>([]);
+    const [objetoDialog, setObjetoDialog] = useState(false);
+    const [objetoDeleteDialog, setObjetoDeleteDialog] = useState(false);
     const [objeto, setObjeto] = useState<Estado>(objetoNovo);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState('');
 
-    // UseEffect para carregar estados
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await EstadoService.buscarTodos();
-                setObjeto(response.data);
+                const response = EstadoService.buscarTodos();
+                setObjeto(response);
             } catch (error) {
                 console.error('Erro ao carregar estados:', error);
                 if (toast.current) {
@@ -53,83 +43,42 @@ const Cadastros = () => {
                 }
             }
         };
-        fetchData();
-    }, [objetoDialogCidade]);
 
-    // UseEffect para carregar cidades quando o dialog de estado é aberto
-    useEffect(() => {
-        const fetchData = async () => {
-            if (objetoDialogEstado) {
-                try {
-                    const response = await CidadeService.buscarTodos();
-                    setCidades(response.data);
-                } catch (error) {
-                    console.error(error);
-                    if (toast.current) {
-                        toast.current.show({ severity: 'info', summary: 'Erro!', detail: 'Erro ao carregar a lista de Estados', life: 3000 });
-                    }
-                }
-            }
-        };
         fetchData();
-    }, [objetoDialogEstado, CidadeService]);
+    }, []);
 
-    // Função para abrir o dialog de estado
-    const openNewEstado = () => {
+    const openNew = () => {
         setObjeto(objetoNovo);
         setSubmitted(false);
-        setObjetoDialogEstado(true);
-    };
+        setObjetoDialog(true);
+    }
 
-    // Função para abrir o dialog de cidade
-    const openNewCidade = () => {
-        setObjeto(objetoNovo);
+    const hideDialog = () => {
         setSubmitted(false);
-        setObjetoDialogCidade(true);
-    };
+        setObjetoDialog(false);
+    }
 
-    // Função para fechar o dialog de estado
-    const hideDialogEstado = () => {
-        setSubmitted(false);
-        setObjetoDialogEstado(false);
-    };
+    const hideDeleteObjetoDialog = () => {
+        setObjetoDeleteDialog(false);
+    }
 
-    // Função para fechar o dialog de cidade
-    const hideDialogCidade = () => {
-        setSubmitted(false);
-        setObjetoDialogCidade(false);
-    };
-
-    // Função para fechar o dialog de exclusão de estado
-    const hideDeleteObjetoDialogEstado = () => {
-        setObjetoDeleteDialogEstado(false);
-    };
-
-    // Função para fechar o dialog de exclusão de cidade
-    const hideDeleteObjetoDialogCidade = () => {
-        setObjetoDeleteDialogCidade(false);
-    };
-
-    // Função para salvar estado
-    const saveObjetoEstado = async () => {
+    const saveObjeto = async () => {
         setSubmitted(true);
+
         if (objeto.nome.trim() && objeto.sigla.trim()) {
             try {
                 let _objeto = { ...objeto };
-                if (objeto.id) {
-                    await EstadoService.alterar(_objeto);
-                    if (toast.current) {
-                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização do Estado', life: 3000});
-                    }
+                if (_objeto.id) {
+                    EstadoService.alterarEstado(_objeto);
                 } else {
-                    await EstadoService.inserirEstado(_objeto);
-                    if (toast.current) {
-                        toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000});
-                    }
+                    EstadoService.inserirEstado(_objeto);
                 }
-                setEstados([...estados, _objeto]); // Atualiza estados imutavelmente
+                if (toast.current) {
+                    toast.current.show({ severity: 'success', summary: 'Sucesso', detail: _objeto.id ? 'Atualização do Estado' : 'Inserção de Estado', life: 3000 });
+                }
                 setObjeto(objetoNovo);
-                setObjetoDialogEstado(false);
+                setObjetoDialog(false);
+
             } catch (error) {
                 console.error('Erro ao salvar estado:', error);
                 if (toast.current) {
@@ -137,194 +86,125 @@ const Cadastros = () => {
                 }
             }
         }
-    };
+    }
 
-    // Função para salvar cidade
-    const saveObjetoCidade = async () => {
-        setSubmitted(true);
-        if (objeto.nome.trim() && objeto.sigla.trim()) {
-            try {
-                let _objeto = { ...objeto };
-                if (objeto.id) {
-                    await CidadeService.alterarCidade(_objeto);
-                    if (toast.current) {
-                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização da Cidade', life: 3000});
-                    }
-                } else {
-                    await CidadeService.inserirCidade(_objeto);
-                    if (toast.current) {
-                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Cidade', life: 3000});
-                    }
-                }
-                setCidades([...cidades, _objeto]); // Atualiza cidades imutavelmente
-                setObjeto(objetoNovo);
-                setObjetoDialogCidade(false);
-            } catch (error) {
-                console.error('Erro ao salvar cidade:', error);
-                if (toast.current) {
-                    toast.current.show({ severity: 'error', summary: 'Erro', detail: 'Falha ao salvar cidade. Por favor, tente novamente mais tarde.', life: 3000 });
-                }
-            }
-        }
-    };
+    const editObjeto = (objeto: Estado) => {
+        setObjeto({ ...objeto });
+        setObjetoDialog(true);
+    }
 
-    // Função para confirmar exclusão de estado
-    const confirmDeleteObjetoEstado = (objeto: Estado) => {
+    const confirmDeleteObjeto = (objeto: Estado) => {
         setObjeto(objeto);
-        setObjetoDeleteDialogEstado(true);
-    };
+        setObjetoDeleteDialog(true);
+    }
 
-    // Função para confirmar exclusão de cidade
-    const confirmDeleteObjetoCidade = (objeto: Cidade) => {
-        setObjeto(objeto);
-        setObjetoDeleteDialogCidade(true);
-    };
-
-    // Função para excluir estado
-    const deleteObjetoEstado = async () => {
+    const deleteObjeto = async () => {
         try {
-            await EstadoService.excluirEstado(objeto.id);
+            EstadoService.excluirEstado(objeto.id);
             if (toast.current) {
-                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000});
+                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000 });
             }
-            setEstados(estados.filter(e => e.id !== objeto.id)); // Atualiza estados imutavelmente
-            setObjetoDeleteDialogEstado(false);
+            setObjetoDeleteDialog(false);
+            window.location.reload();
         } catch (error) {
             console.error('Erro ao excluir estado:', error);
             if (toast.current) {
                 toast.current.show({ severity: 'error', summary: 'Erro', detail: 'Falha ao excluir estado. Por favor, tente novamente mais tarde.', life: 3000 });
             }
         }
-    };
+    }
 
-    // Função para excluir cidade
-    const deleteObjetoCidade = async () => {
-        try {
-            await CidadeService.excluirCidade(objeto.id);
-            if (toast.current) {
-                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000 });
-            }
-            setCidades(cidades.filter(c => c.id !== objeto.id)); // Atualiza cidades imutavelmente
-            setObjetoDeleteDialogCidade(false);
-        } catch (error) {
-            console.error('Erro ao excluir cidade:', error);
-            if (toast.current) {
-                toast.current.show({ severity: 'error', summary: 'Erro', detail: 'Falha ao excluir cidade. Por favor, tente novamente mais tarde.', life: 3000 });
-            }
-        }
-    };
-
-
-    // Função para lidar com eventos de mudança nos campos de entrada
-    const onInputChange = (e: ChangeEvent<HTMLInputElement>, name: string) => {
+    const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, name: string) => {
         const val = e.currentTarget.value;
         let _objeto = { ...objeto };
-        _objeto[name as keyof Estado] = val;
+        _objeto[name] = val;
         setObjeto(_objeto);
     };
 
-    const leftToolbarTemplateEstado = () => {
+    const leftToolbarTemplate = () => {
         return (
             <div className="my-2">
-                <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNewEstado} />
-                <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteObjetoEstado} disabled={!objeto || !objeto.id} />
+                <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
+                <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteObjeto} disabled={!objetos || !objetos.length} />
             </div>
         );
     };
 
-    const leftToolbarTemplateCidade = () => {
+    const idBodyTemplate = (rowData: Estado) => {
         return (
-            <div className="my-2">
-                <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNewCidade} />
-                <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteObjetoCidade} disabled={!objeto || !objeto.id} />
+            <>
+                <span className="p-column-title">Id</span>
+                {rowData.id}
+            </>
+        );
+    }
+
+    const nomeBodyTemplate = (rowData: Estado) => {
+        return (
+            <>
+                <span className="p-column-title">Nome</span>
+                {rowData.nome}
+            </>
+        );
+    }
+
+    const siglaBodyTemplate = (rowData: Estado) => {
+        return (
+            <>
+                <span className="p-column-title">Sigla</span>
+                {rowData.sigla}
+            </>
+        );
+    }
+
+    const actionBodyTemplate = (rowData: Estado) => {
+        return (
+            <div>
+                <Button icon="pi pi-pencil" rounded severity="success" className="mr-2" onClick={() => editObjeto(rowData)} />
+                <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteObjeto(rowData)} />
             </div>
         );
-    };
+    }
 
-    const idBodyTemplateEstado = (rowData: Estado) => {
-        return rowData.id;
-    };
-
-    const idBodyTemplateCidade = (rowData: Cidade) => {
-        return rowData.id;
-    };
-
-    const headerEstado = (
+    const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Manage Estados</h5>
+            <h5 className="m-0">Estados</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
                 <InputText type="search" onInput={(e) => setGlobalFilter(e.currentTarget.value)} placeholder="Search..." />
             </span>
         </div>
-    );
-
-    const headerCidade = (
-        <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Manage Cidades</h5>
-            <span className="block mt-2 md:mt-0 p-input-icon-left">
-                <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.currentTarget.value)} placeholder="Search..." />
-            </span>
-        </div>
-    );
-
-    const objetoDialogFooterEstado = (
-        <>
-            <Button label="Cancelar" icon="pi pi-times" text onClick={hideDialogEstado} />
-            <Button label="Salvar" icon="pi pi-check" text onClick={saveObjetoEstado} />
-        </>
-    );
-
-    const objetoDialogFooterCidade = (
-        <>
-            <Button label="Cancelar" icon="pi pi-times" text onClick={hideDialogCidade} />
-            <Button label="Salvar" icon="pi pi-check" text onClick={saveObjetoCidade} />
-        </>
-    );
-
-    const deleteObjetoDialogFooterEstado = (
-        <>
-            <Button label="Não" icon="pi pi-times" text onClick={hideDeleteObjetoDialogEstado} />
-            <Button label="Sim" icon="pi pi-check" text onClick={deleteObjetoEstado} />
-        </>
-    );
-
-    const deleteObjetoDialogFooterCidade = (
-        <>
-            <Button label="Não" icon="pi pi-times" text onClick={hideDeleteObjetoDialogCidade} />
-            <Button label="Sim" icon="pi pi-check" text onClick={deleteObjetoCidade} />
-        </>
     );
 
     return (
         <div className="grid crud-demo">
-            <div className="col-6">
+            <div className="col-12">
                 <div className="card">
                     <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplateEstado}></Toolbar>
+                    <Toolbar className="mb-4" left={leftToolbarTemplate}></Toolbar>
 
-                    <DataTable<Estado>
-                        ref={dtEstado}
-                        value={objeto}
+                    <DataTable
+                        ref={dt}
+                        value={objetos}
                         dataKey="id"
                         paginator
                         rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} objetos"
+                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} Estados"
                         globalFilter={globalFilter}
                         emptyMessage="Sem objetos cadastrados."
-                        header={headerEstado}
+                        header={header}
                     >
-                        <Column field="id" header="Id" sortable body={idBodyTemplateEstado} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="nome" header="Nome" sortable body={idBodyTemplateEstado} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="sigla" header="Sigla" sortable body={idBodyTemplateEstado} headerStyle={{ minWidth: '10rem' }}></Column>
-                        <Column body={idBodyTemplateEstado} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="id" header="Id" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="nome" header="Nome" sortable body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="sigla" header="Sigla" sortable body={siglaBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
-                    <Dialog visible={objetoDialogCidade} style={{ width: '450px' }} header="Cadastrar" modal className="p-fluid" footer={objetoDialogFooterEstado} onHide={hideDialogEstado}>
+                    <Dialog visible={objetoDialog} style={{ width: '450px' }} header="Cadastrar" modal className="p-fluid" onHide={hideDialog}>
+
                         <div className="field">
                             <label htmlFor="nome">Nome</label>
                             <InputText
@@ -351,11 +231,12 @@ const Cadastros = () => {
                                     'p-invalid': submitted && !objeto.sigla
                                 })}
                             />
-                            {submitted && !objeto.sigla && <small className="p-invalid"> Sigla obrigatório!</small>}
+                            {submitted && !objeto.sigla && <small className="p-invalid">A Sigla obrigatório!</small>}
                         </div>
+
                     </Dialog>
 
-                    <Dialog visible={objetoDeleteDialogCidade} style={{ width: '450px' }} header="Confirm" modal footer={deleteObjetoDialogFooterEstado} onHide={hideDeleteObjetoDialogEstado}>
+                    <Dialog visible={objetoDeleteDialog} style={{ width: '450px' }} header="Confirm" modal onHide={hideDeleteObjetoDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {objeto && (
@@ -364,49 +245,16 @@ const Cadastros = () => {
                                 </span>
                             )}
                         </div>
-                    </Dialog>
-                </div>
-            </div>
-            <div className="col-6">
-                <div className="card">
-                    <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplateCidade}></Toolbar>
-
-                    <DataTable<Cidade>
-                        ref={dtCidade}
-                        value={cidades}
-                        dataKey="id"
-                        paginator
-                        rows={10}
-                        rowsPerPageOptions={[5, 10, 25]}
-                        className="datatable-responsive"
-                        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} Cidades"
-                        globalFilter={globalFilter}
-                        emptyMessage="Sem objetos cadastrados."
-                        header={headerCidade}
-                    >
-                        <Column field="id" header="Id" sortable body={idBodyTemplateCidade} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="nome" header="Nome" sortable body={idBodyTemplateCidade} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="sigla" header="Sigla" sortable body={idBodyTemplateCidade} headerStyle={{ minWidth: '10rem' }}></Column>
-                        <Column body={idBodyTemplateCidade} headerStyle={{ minWidth: '10rem' }}></Column>
-                    </DataTable>
-
-                    <Dialog visible={objetoDeleteDialogEstado} style={{ width: '450px' }} header="Confirm" modal footer={deleteObjetoDialogFooterCidade} onHide={hideDeleteObjetoDialogCidade}>
-                        <div className="flex align-items-center justify-content-center">
-                            <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
-                            {objeto && (
-                                <span>
-                                    Deseja Excluir <b>{objeto.nome}</b>?
-                                </span>
-                            )}
+                        <div className="mt-4 text-center">
+                            <Button label="Cancelar" icon="pi pi-times" className="p-button-text" onClick={hideDeleteObjetoDialog} />
+                            <Button label="Confirmar" icon="pi pi-check" className="p-button-text" onClick={deleteObjeto} />
                         </div>
                     </Dialog>
                 </div>
             </div>
         </div>
     );
-}
+};
+
 
 export default Cadastros;
-

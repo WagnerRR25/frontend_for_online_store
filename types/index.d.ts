@@ -59,6 +59,7 @@ export type {
     AppMailReplyProps,
     AppMailProps,
     AppMenuItem,
+    Projeto,
     Estado,
-    Cidade
+    Cidade,
 };

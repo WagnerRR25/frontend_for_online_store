@@ -1,36 +1,68 @@
-'use client';
 
-import { CidadeService } from "@/demo/service/cadastros/CidadeService";
-import { Cidade } from "@/types";
+import { CidadeService } from "@/demo/service/cadastro/CidadeService";
+import { EstadoService } from '@/demo/service/cadastro/EstadoService';
+import { useEffect, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
-import { Dialog } from "primereact/dialog";
-import { InputText } from "primereact/inputtext";
 import { Toast } from "primereact/toast";
 import { Toolbar } from "primereact/toolbar";
 import { classNames } from "primereact/utils";
-import { useEffect, useRef, useState } from "react";
+import { Cidade, Estado } from "@/types";
+import { InputText } from "primereact/inputtext";
+import { Dialog } from "primereact/dialog";
+import { Dropdown } from 'primereact/dropdown';
 
-const Cidade = () => {
+const Cidades = () => {
     const objetoNovo: Cidade = {
         id: '',
         nome: '',
+        estados:'',
         inventoryStatus: 'INSTOCK'
     };
 
     const [objetos, setObjetos] = useState<Cidade[]>([]);
+    const [estados, setEstados] = useState<Cidade[]>([]);
     const [objetoDialog, setObjetoDialog] = useState(false);
     const [objetoDeleteDialog, setObjetoDeleteDialog] = useState(false);
     const [objeto, setObjeto] = useState<Cidade>(objetoNovo);
     const [submitted, setSubmitted] = useState(false);
     const [globalFilter, setGlobalFilter] = useState('');
+    const [selectedCity, setSelectedCity] = useState<Cidade | null>(null);
+    const [cidades, setCidades] = useState<Cidade[]>([]);
     const toast = useRef<Toast>(null);
     const dt = useRef<DataTable<any>>(null);
     const serviceCidade = new CidadeService();
+    const estadoService = new EstadoService();
+
 
     useEffect(() => {
         const fetchData = async () => {
+                const response = await estadoService.buscarTodos();
+                setObjetos(response.data);
+        };
+
+        fetchData();
+    }, []);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await serviceCidade.buscarTodos();
+                setObjetos(response.data);
+            } catch (error) {
+                console.error('Erro ao carregar estados:', error);
+                if (toast.current) {
+                    toast.current.show({ severity: 'error', summary: 'Erro', detail: 'Falha ao carregar estados. Por favor, tente novamente mais tarde.', life: 3000 });
+                }
+            }
+        };
+
+        fetchData();
+    }, [objetos]);
+
+    useEffect(() => {
+        const fetchCidades = async () => {
             try {
                 const response = await serviceCidade.buscarTodos();
                 setObjetos(response.data);
@@ -42,7 +74,7 @@ const Cidade = () => {
             }
         };
 
-        fetchData();
+        fetchCidades();
     }, []);
 
     const openNew = () => {
@@ -63,18 +95,18 @@ const Cidade = () => {
     const saveObjeto = async () => {
         setSubmitted(true);
 
-        if (objeto.nome.trim()) {
+        if (objeto.nome.trim() && objeto.sigla.trim()) {
             try {
                 let _objeto = { ...objeto };
                 if (objeto.id) {
                     CidadeService.alterarCidade(_objeto);
                     if (toast.current) {
-                        toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Atualização do Cidade', life: 3000 });
+                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização da Cidade', life: 3000});
                     }
                 } else {
                     CidadeService.inserirCidade(_objeto);
                     if (toast.current) {
-                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Cidade', life: 3000 });
+                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Inserção de Cidade', life: 3000});
                     }
                 }
                 setObjetos([]);
@@ -95,10 +127,6 @@ const Cidade = () => {
         setObjetoDialog(true);
     }
 
-    const exportCSV = () => {
-        dt.current?.exportCSV();
-    };
-
     const confirmDeleteObjeto = (objeto: Cidade) => {
         setObjeto(objeto);
         setObjetoDeleteDialog(true);
@@ -108,7 +136,7 @@ const Cidade = () => {
         try {
             CidadeService.excluirCidade(objeto.id);
             if (toast.current) {
-                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000 });
+                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000});
             }
             setObjetos([]);
             setObjetoDeleteDialog(false);
@@ -125,6 +153,7 @@ const Cidade = () => {
         const val = e.currentTarget.value;
         let _objeto = { ...objeto };
         _objeto[name] = val;
+
         setObjeto(_objeto);
     };
 
@@ -155,11 +184,11 @@ const Cidade = () => {
         );
     }
 
-    const siglaBodyTemplate = (rowData: Cidade) => {
+    const estadoBodyTemplate = (rowData: Estado) => {
         return (
             <>
-                <span className="p-column-title">Sigla</span>
-                {rowData.sigla}
+                <span className="p-column-title">Estado</span>
+                {rowData.estado && (rowData.estado.nome+'/'+rowData.estado.sigla)}
             </>
         );
     }
@@ -220,7 +249,7 @@ const Cidade = () => {
                     >
                         <Column field="id" header="Id" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nome" header="Nome" sortable body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="sigla" header="Sigla" sortable body={siglaBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="estado" header="Estado" body={estadoBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
@@ -241,20 +270,16 @@ const Cidade = () => {
                             {submitted && !objeto.nome && <small className="p-invalid">O nome é obrigatório!</small>}
                         </div>
                         <div className="field">
-                            <label htmlFor="sigla">Sigla</label>
-                            <InputText
-                                id="sigla"
-                                value={objeto.sigla}
-                                onChange={(e) => onInputChange(e, 'sigla')}
-                                required
-                                autoFocus
-                                className={classNames({
-                                    'p-invalid': submitted && !objeto.sigla
-                                })}
-                            />
-                            {submitted && !objeto.sigla && <small className="p-invalid"> Sigla obrigatório!</small>}
+                            <label htmlFor="estado">Estado</label>
+                            <Dropdown value={selectedCity}
+                            onChange={(e) =>
+                                setSelectedCity(e.value)}
+                                options={estados} optionLabel="nome"
+                                optionValue="id"
+                            showClear placeholder="Selecione um estado"
+                            className="w-full md:w-14rem" />
+                            {submitted && !objeto.estado && <small className="p-invalid">Estado obrigatório!</small>}
                         </div>
-
                     </Dialog>
 
                     <Dialog visible={objetoDeleteDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteObjetoDialogFooter} onHide={hideDeleteObjetoDialog}>
@@ -273,4 +298,4 @@ const Cidade = () => {
     );
 };
 
-export default Cidade;
+export default Cidades;

@@ -1,6 +1,6 @@
 import { Cidade } from ".";
 
-declare namespace Estado {
+declare namespace Cidade {
     interface Task {
         id?: number;
         name?: string;

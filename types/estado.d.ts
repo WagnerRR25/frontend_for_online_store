@@ -1,9 +1,9 @@
 import { Estado } from ".";
 
 declare namespace Estado {
-    interface Task {
+    type Task = {
         id?: number;
-        name?: string;
-        sigla?: string;
+        name: string;
+        sigla: string;
     };
 }
