@@ -3,6 +3,15 @@ import { axiosInstance } from './CidadeService';
 const API_URL = 'http://localhost:3000'; // URL da API
 
 export class EstadoService {
+    static estados() {
+        throw new Error("Method not implemented.");
+    }
+    estados() {
+        throw new Error("Method not implemented.");
+    }
+    static alterar(_objeto: any) {
+        throw new Error("Method not implemented.");
+    }
     static buscarTodos() {
         throw new Error('Method not implemented.');
     }
@@ -15,6 +24,8 @@ export class EstadoService {
     static excluirEstado(id: any) {
         throw new Error('Method not implemented.');
     }
+
+
     buscarTodos() {
         return axiosInstance.get('/api/estado/');
     }
