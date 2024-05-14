@@ -1,5 +1,3 @@
-
-import { Cidade } from '@/types';
 import axios from 'axios';
 
 export const axiosInstance = axios.create({
@@ -21,7 +19,7 @@ export class CidadeService {
     }
 
     async alterarCidade(_objeto: any): Promise<any> {
-        return await axiosInstance.put(`/api/cidade/${_objeto.id}`, _objeto);
+        return await axiosInstance.put('/api/cidade/', _objeto);
     }
 
     async inserirCidade(_objeto: any): Promise<any> {

@@ -2,7 +2,7 @@
 
 import { CidadeService } from "@/demo/service/cadastro/CidadeService";
 import { EstadoService } from '@/demo/service/cadastro/EstadoService';
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
@@ -13,15 +13,16 @@ import { Cidade, Estado } from "@/types";
 import { InputText } from "primereact/inputtext";
 import { Dialog } from "primereact/dialog";
 import { Dropdown, DropdownChangeEvent } from 'primereact/dropdown';
+import { FileUpload } from "primereact/fileupload";
+import React from "react";
 
 const Cidades = () => {
     const objetoNovo: Cidade = {
         id: '',
         nome: '',
         estado: '',
-        inventoryStatus: 'INSTOCK'
+        inventoryStatus: 'DISPONÍVEL'
     };
-
 
     const [objeto, setObjeto] = useState<Cidade>(objetoNovo);
     const [objetos, setObjetos] = useState<Cidade[]>([]);
@@ -32,8 +33,8 @@ const Cidades = () => {
     const [globalFilter, setGlobalFilter] = useState('');
     const toast = useRef<Toast>(null);
     const dt = useRef<DataTable<any>>(null);
-    const objetoCidade = new CidadeService();
-    const estadoService = new EstadoService();
+    const objetoCidade = useMemo(() => new CidadeService(), []);
+    const estadoService = useMemo(() => new EstadoService(), []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -46,7 +47,7 @@ const Cidades = () => {
         };
 
         fetchData();
-    }, []);
+    }, [objeto, objetoCidade]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -59,7 +60,7 @@ const Cidades = () => {
         };
 
         fetchData();
-    }, []);
+    }, [objeto, estadoService]);
 
     const handleFetchError = (message: string, error: any) => {
         console.error(message, error);
@@ -83,50 +84,71 @@ const Cidades = () => {
         setObjetoDeleteDialog(false);
     }
 
-    const saveObjeto = async () => {
+    const saveObjeto = async (): Promise<void> => {
         setSubmitted(true);
 
-        if (!objeto.id) {
-            try {
-                let _objeto = { ...objeto };
-                if (objeto.id) {
-                    await objetoCidade.inserirCidade(_objeto); // Alterado
-                    if (toast.current) {
-                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização da Cidade', life: 3000});
-                    }
-                } else {
-                    await objetoCidade.alterarCidade(_objeto); // Alterado
-                    if (toast.current) {
-                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Inserção de Cidade', life: 3000});
-                    }
-                }
-                setObjetos(prevObjetos => {
-                    const index = prevObjetos.findIndex(obj => obj.id === _objeto.id);
-                    if (index !== -1) {
-                        const newObjects = [...prevObjetos];
-                        newObjects[index] = _objeto;
-                        return newObjects;
-                    } else {
-                        return [...prevObjetos, _objeto];
-                    }
-                });
-                setObjetoDialog(false);
-                setObjeto(objetoNovo);
-            } catch (error) {
-                console.error('Erro ao salvar cidade:', error);
-                if (toast.current) {
-                    toast.current.show({ severity: 'error', summary: 'Erro', detail: 'Falha ao salvar cidade. Por favor, tente novamente mais tarde.', life: 3000 });
-                }
+        try {
+            let _objeto = { ...objeto };
+
+            if (_objeto.id) {
+                await updateObjeto(_objeto);
+            } else {
+                await insertObjeto(_objeto);
             }
+
+            updateObjetoInList(_objeto);
+
+            setObjetoDialog(false);
+            setObjeto(objetoNovo);
+        } catch (error) {
+            handleSaveError(error);
         }
-    }
+    };
+
+    const updateObjeto = async (_objeto: Cidade): Promise<void> => {
+        await objetoCidade.alterarCidade(_objeto);
+        showToast('success', 'Sucesso', 'Atualização da Cidade');
+    };
+
+    const insertObjeto = async (_objeto: Cidade): Promise<void> => {
+        await objetoCidade.inserirCidade(_objeto);
+        showToast('success', 'Sucesso', 'Inserção de Cidade');
+
+        setObjetos(prevObjetos => [...prevObjetos, _objeto]);
+    };
+
+    const updateObjetoInList = (_objeto: Cidade): void => {
+        setObjetos(prevObjetos => {
+            const index = prevObjetos.findIndex(obj => obj.id === _objeto.id);
+            if (index !== -1) {
+                const newObjects = [...prevObjetos];
+                newObjects[index] = _objeto;
+                return newObjects;
+            } else {
+                return [...prevObjetos, _objeto, objeto ];
+            }
+        });
+    };
+
+    const handleSaveError = (error: any): void => {
+        console.error('Erro ao salvar cidade:', error);
+        showToast('error', 'Erro', 'Falha ao salvar cidade. Por favor, tente novamente mais tarde.');
+    };
+
+    type ToastSeverity = "success" | "info" | "warn" | "error";
+
+    const showToast = (severity: ToastSeverity, summary: string, detail: string): void => {
+        if (toast.current) {
+            toast.current.show({ severity, summary, detail, life: 3000 });
+        }
+    };
 
     const editObjeto = (objeto: Cidade) => {
         setObjeto({ ...objeto });
         setObjetoDialog(true);
     }
 
-        const exportCSV = () => {
+    const exportCSV = () => {
         dt.current?.exportCSV();
     };
 
@@ -137,7 +159,7 @@ const Cidades = () => {
 
     const deleteObjeto = async () => {
         try {
-            await objetoCidade.excluirCidade(objeto.id); // Alterado
+            await objetoCidade.excluirCidade(objeto.id);
             if (toast.current) {
                 toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000});
             }
@@ -151,7 +173,7 @@ const Cidades = () => {
         }
     }
 
-    const onInputChange = (e: DropdownChangeEvent, name: string) => {
+    const onInputChanges = (e: DropdownChangeEvent, name: string) => {
         const val = e.value || 0;
         let _objeto = { ...objeto };
         _objeto[`${name}`] = val;
@@ -159,7 +181,7 @@ const Cidades = () => {
         setObjeto(_objeto);
     };
 
-    const onInputChanges = (e: ChangeEvent<HTMLInputElement>, name: string) => {
+    const onInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, name: string) => {
         const val = (e.target && e.target.value) || '';
         let _objeto = { ...objeto };
         _objeto[`${name}`] = val;
@@ -173,6 +195,15 @@ const Cidades = () => {
                 <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
                 <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteObjeto} disabled={!objetos || !objetos.length} />
             </div>
+        );
+    };
+
+    const rightToolbarTemplate = () => {
+        return (
+            <React.Fragment>
+                <FileUpload mode="basic" accept="image/*" maxFileSize={1000000} chooseLabel="Import" className="mr-2 inline-block" />
+                <Button label="Export" icon="pi pi-upload" severity="help" onClick={exportCSV} />
+            </React.Fragment>
         );
     };
 
@@ -194,7 +225,7 @@ const Cidades = () => {
         );
     }
 
-    const estadoBodyTemplate = (rowData: Estado) => {
+    const estadoBodyTemplate = (rowData: Cidade) => {
         return (
             <>
                 <span className="p-column-title">Estado</span>
@@ -211,6 +242,15 @@ const Cidades = () => {
             </div>
         );
     }
+
+    const statusBodyTemplate = (rowData: Cidade) => {
+        return (
+            <>
+                <span className="p-column-title">Status</span>
+                <span className={`product-badge status-${rowData.inventoryStatus?.toLowerCase()}`}>{rowData.inventoryStatus}</span>
+            </>
+        );
+    };
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
@@ -237,11 +277,11 @@ const Cidades = () => {
     );
 
     return (
-        <div className="grid crud-demo">
+        <div className="grid cadastros">
             <div className="col-12">
                 <div className="card">
                     <Toast ref={toast} />
-                    <Toolbar className="mb-4" left={leftToolbarTemplate}></Toolbar>
+                    <Toolbar className="mb-4" left={leftToolbarTemplate} right={rightToolbarTemplate}></Toolbar>
 
                     <DataTable
                         ref={dt}
@@ -257,10 +297,10 @@ const Cidades = () => {
                         emptyMessage="Sem objetos cadastrados."
                         header={header}
                     >
-                        {/* <Column selectionMode="multiple" headerStyle={{width: '4rem'}}></Column> */}
                         <Column field="id" header="Ids" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nome" header="Cidades" sortable body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="estado" header="Estados" body={estadoBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="estado" header="Estados" sortable body={estadoBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="inventoryStatus" header="Status" body={statusBodyTemplate} sortable headerStyle={{ minWidth: '10rem' }}></Column>
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
@@ -271,7 +311,7 @@ const Cidades = () => {
                             <InputText
                                 id="nome"
                                 value={objeto.nome}
-                                onChange={(e) => onInputChanges(e, 'nome')}
+                                onChange={(e) => onInputChange(e, 'nome')}
                                 required
                                 autoFocus
                                 className={classNames({
@@ -283,14 +323,14 @@ const Cidades = () => {
                         <div className="field">
                             <label htmlFor="estado">Estado</label>
                             <Dropdown
-                                value={objeto.nome}
-                                onChange={(e) => onInputChange(e, 'estado')}
+                                value={objeto.estado}
+                                onChange={(e) => onInputChanges(e, 'estado')}
                                 options={estados}
                                 optionLabel="nome"
                                 placeholder="Selecione um estado"
                                 className="w-full md:w-14rem"
                             />
-                            {submitted && !objeto.nome && <small className="p-invalid">Estado obrigatório!</small>}
+                            {submitted && !objeto.estado && <small className="p-invalid">Estado obrigatório!</small>}
                         </div>
                     </Dialog>
 
@@ -311,7 +351,5 @@ const Cidades = () => {
 };
 
 export default Cidades;
-
-
 
 
