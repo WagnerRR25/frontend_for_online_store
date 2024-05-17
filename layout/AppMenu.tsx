@@ -82,6 +82,11 @@ const AppMenu = () => {
                     ]
                 },
                 {
+                    label: 'Cadastros',
+                    icon: 'pi pi-fw pi-briefcase',
+                    to: '/pages/cadastros'
+                },
+                {
                     label: 'Crud',
                     icon: 'pi pi-fw pi-pencil',
                     to: '/pages/crud'

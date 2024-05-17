@@ -1,4 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+'use client';
+
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
 import { DataTable } from "primereact/datatable";
@@ -14,8 +17,7 @@ const Estados = () => {
     const objetoNovo: Estado = {
         id: '',
         nome: '',
-        sigla: '',
-        inventoryStatus: 'INSTOCK'
+        sigla: ''
     };
 
     const [objetos, setObjetos] = useState<Estado[]>([]);
@@ -26,12 +28,12 @@ const Estados = () => {
     const [globalFilter, setGlobalFilter] = useState('');
     const toast = useRef<Toast>(null);
     const dt = useRef<DataTable<any>>(null);
-    const serviceEstado = new EstadoService();
+    const estadoService = useMemo(() => new EstadoService(), []);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await serviceEstado.buscarTodos();
+                const response = await estadoService.buscarTodos();
                 setObjetos(response.data);
             } catch (error) {
                 console.error('Erro ao carregar estados:', error);
@@ -39,7 +41,7 @@ const Estados = () => {
         };
 
         fetchData();
-    }, []);
+    }, [objeto, estadoService]);
 
     const openNew = () => {
         setObjeto(objetoNovo);
@@ -56,43 +58,67 @@ const Estados = () => {
         setObjetoDeleteDialog(false);
     }
 
-    const saveObjeto = async () => {
+    const saveObjeto = async (): Promise<void> => {
         setSubmitted(true);
 
-        if (!objeto.nome.trim() && objeto.sigla.trim() && typeof objeto.estado === 'string' && objeto.estado.trim()) {
-            try {
-                let _objeto = { ...objeto };
-                if (objeto.id) {
-                    await EstadoService.alterar(_objeto);
-                    if (toast.current) {
-                        toast.current.show({severity: 'success', summary: 'Sucesso', detail: 'Atualização do Estado', life: 3000});
-                    }
-                } else {
-                    await EstadoService.inserirEstado(_objeto);
-                    if (toast.current) {
-                        toast.current?.show({ severity: 'success', summary: 'Sucesso', detail: 'Inserção de Estado', life: 3000});
-                    }
-                }
-                setObjetos(prevObjetos => [...prevObjetos, _objeto]);
-                setObjetoDialog(false);
-                setObjeto(objetoNovo);
-            } catch (error) {
-                console.error('Erro ao salvar estado:', error);
-                if (toast.current) {
-                    toast.current.show({ severity: 'error', summary: 'Erro', detail: 'Falha ao salvar estado. Por favor, tente novamente mais tarde.', life: 3000 });
-                }
+        try {
+            let _objeto = { ...objeto };
+
+            if (_objeto.id) {
+                await updateObjeto(_objeto);
+            } else {
+                await insertObjeto(_objeto);
             }
+
+            setObjetoDialog(false);
+            setObjeto(objetoNovo);
+
+            showToast('success', 'Sucesso', _objeto.id ? 'Atualização da Estado' : 'Inserção de Estado');
+        } catch (error) {
+            handleSaveError(error);
         }
-    }
+    };
+
+    const updateObjeto = async (_objeto: Estado): Promise<void> => {
+        await estadoService.alterarEstado(_objeto);
+        updateObjetoInList(_objeto);
+    };
+
+    const insertObjeto = async (_objeto: Estado): Promise<void> => {
+        const response = await estadoService.inserirEstado(_objeto);
+        setObjetos(prevObjetos => [...prevObjetos, response.data]);
+    };
+
+    const updateObjetoInList = (_objeto: Estado): void => {
+        setObjetos(prevObjetos => {
+            const index = prevObjetos.findIndex(obj => obj.id === _objeto.id);
+            if (index !== -1) {
+                const newObjects = [...prevObjetos];
+                newObjects[index] = _objeto;
+                return newObjects;
+            } else {
+                return [...prevObjetos, _objeto];
+            }
+        });
+    };
+
+    const handleSaveError = (error: any): void => {
+        console.error('Erro ao salvar cidade:', error);
+        showToast('error', 'Erro', 'Falha ao salvar cidade. Por favor, tente novamente mais tarde.');
+    };
+
+    type ToastSeverity = "success" | "info" | "warn" | "error";
+
+    const showToast = (severity: ToastSeverity, summary: string, detail: string): void => {
+        if (toast.current) {
+            toast.current.show({ severity, summary, detail, life: 3000 });
+        }
+    };
 
     const editObjeto = (objeto: Estado) => {
         setObjeto({ ...objeto });
         setObjetoDialog(true);
     }
-
-    const exportCSV = () => {
-        dt.current?.exportCSV();
-    };
 
     const confirmDeleteObjeto = (objeto: Estado) => {
         setObjeto(objeto);
@@ -101,11 +127,11 @@ const Estados = () => {
 
     const deleteObjeto = async () => {
         try {
-            EstadoService.excluirEstado(objeto.id);
+            await estadoService.excluirEstado(objeto.id);
             if (toast.current) {
                 toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000});
             }
-            setObjetos([]);
+            setObjetos(prevObjetos => prevObjetos.filter(obj => obj.id !== objeto.id));
             setObjetoDeleteDialog(false);
         } catch (error) {
             console.error('Erro ao excluir estado:', error);
@@ -125,13 +151,13 @@ const Estados = () => {
     const leftToolbarTemplate = () => {
         return (
             <div className="my-2">
-                <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
-                <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteObjeto} disabled={!objetos || !objetos.length} />
+                <Button label="Novo" icon="pi pi-plus" className=" mr-2" onClick={openNew} />
+                <Button label="Excluir" icon="pi pi-trash" className="mr-2" onClick={confirmDeleteObjeto} disabled={!objetos || !objetos.length} />
             </div>
         );
     };
 
-    const idBodyTemplate = (rowData: Estado.Task) => {
+    const idBodyTemplate = (rowData: Estado) => {
         return (
             <>
                 <span className="p-column-title">Id</span>
@@ -140,7 +166,7 @@ const Estados = () => {
         );
     }
 
-    const nomeBodyTemplate = (rowData: Estado.Task) => {
+    const nomeBodyTemplate = (rowData: Estado) => {
         return (
             <>
                 <span className="p-column-title">Nome</span>
@@ -149,7 +175,7 @@ const Estados = () => {
         );
     }
 
-    const siglaBodyTemplate = (rowData: Estado.Task) => {
+    const siglaBodyTemplate = (rowData: Estado) => {
         return (
             <>
                 <span className="p-column-title">Sigla</span>
@@ -158,36 +184,36 @@ const Estados = () => {
         );
     }
 
-    const actionBodyTemplate = (rowData: Estado.Task) => {
+    const actionBodyTemplate = (rowData: Estado) => {
         return (
             <div>
-                <Button icon="pi pi-pencil" rounded severity="success" className="mr-2" onClick={() => editObjeto(rowData)} />
-                <Button icon="pi pi-trash" rounded severity="warning" onClick={() => confirmDeleteObjeto(rowData)} />
+                <Button icon="pi pi-pencil" className="mr-2" onClick={() => editObjeto(rowData)} />
+                <Button icon="pi pi-trash" onClick={() => confirmDeleteObjeto(rowData)} />
             </div>
         );
     }
 
     const header = (
         <div className="flex flex-column md:flex-row md:justify-content-between md:align-items-center">
-            <h5 className="m-0">Manage objetos</h5>
+            <h5 className="m-0">Gerenciar Estados</h5>
             <span className="block mt-2 md:mt-0 p-input-icon-left">
                 <i className="pi pi-search" />
-                <InputText type="search" onInput={(e) => setGlobalFilter(e.currentTarget.value)} placeholder="Search..." />
+                <InputText type="search" value={globalFilter} onChange={(e) => setGlobalFilter(e.target.value)} placeholder="Pesquisar..." />
             </span>
         </div>
     );
 
     const objetoDialogFooter = (
         <>
-            <Button label="Cancelar" icon="pi pi-times" text onClick={hideDialog} />
-            <Button label="Salvar" icon="pi pi-check" text onClick={saveObjeto} />
+            <Button label="Cancelar" icon="pi pi-times" onClick={hideDialog} />
+            <Button label="Salvar" icon="pi pi-check" onClick={saveObjeto} />
         </>
     );
 
     const deleteObjetoDialogFooter = (
         <>
-            <Button label="Não" icon="pi pi-times" text onClick={hideDeleteObjetoDialog} />
-            <Button label="Sim" icon="pi pi-check" text onClick={deleteObjeto} />
+            <Button label="Não" icon="pi pi-times" onClick={hideDeleteObjetoDialog} />
+            <Button label="Sim" icon="pi pi-check" onClick={deleteObjeto} />
         </>
     );
 
@@ -203,18 +229,20 @@ const Estados = () => {
                         value={objetos}
                         dataKey="id"
                         paginator
-                        rows={10}
+                        rows={5}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} objetos"
+                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} estados"
                         globalFilter={globalFilter}
-                        emptyMessage="Sem objetos cadastrados."
+                        filters={{ 'global': { value: globalFilter, matchMode: 'contains' } }}
+                        emptyMessage="Nenhum objeto cadastrado."
                         header={header}
                     >
-                        <Column field="id" header="Id" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="nome" header="Nome" sortable body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
-                        <Column field="sigla" header="Sigla" sortable body={siglaBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
+                        <Column field="id" header="Id" body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="nome" header="Nome" body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
+                        <Column field="sigla" header="Sigla" body={siglaBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
@@ -246,17 +274,17 @@ const Estados = () => {
                                     'p-invalid': submitted && !objeto.sigla
                                 })}
                             />
-                            {submitted && !objeto.sigla && <small className="p-invalid"> Sigla é obrigatória!</small>}
+                            {submitted && !objeto.sigla && <small className="p-invalid">Sigla é obrigatória!</small>}
                         </div>
 
                     </Dialog>
 
-                    <Dialog visible={objetoDeleteDialog} style={{ width: '450px' }} header="Confirm" modal footer={deleteObjetoDialogFooter} onHide={hideDeleteObjetoDialog}>
+                    <Dialog visible={objetoDeleteDialog} style={{ width: '450px' }} header="Confirmar" modal footer={deleteObjetoDialogFooter} onHide={hideDeleteObjetoDialog}>
                         <div className="flex align-items-center justify-content-center">
                             <i className="pi pi-exclamation-triangle mr-3" style={{ fontSize: '2rem' }} />
                             {objeto && (
                                 <span>
-                                    Deseja Excluir <b>{objeto.nome}</b>?
+                                    Deseja excluir <b>{objeto.nome}</b>?
                                 </span>
                             )}
                         </div>

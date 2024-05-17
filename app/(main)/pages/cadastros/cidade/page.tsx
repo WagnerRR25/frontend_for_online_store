@@ -1,7 +1,5 @@
 'use client';
 
-import { CidadeService } from "@/demo/service/cadastro/CidadeService";
-import { EstadoService } from '@/demo/service/cadastro/EstadoService';
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "primereact/button";
 import { Column } from "primereact/column";
@@ -9,18 +7,20 @@ import { DataTable } from "primereact/datatable";
 import { Toast } from "primereact/toast";
 import { Toolbar } from "primereact/toolbar";
 import { classNames } from "primereact/utils";
-import { Cidade, Estado } from "@/types";
 import { InputText } from "primereact/inputtext";
 import { Dialog } from "primereact/dialog";
 import { Dropdown, DropdownChangeEvent } from 'primereact/dropdown';
 import { FileUpload } from "primereact/fileupload";
 import React from "react";
+import { CidadeService } from '@/demo/service/cadastro/CidadeService';
+import { EstadoService } from "@/demo/service/cadastro/EstadoService";
+import { Cidade, Estado } from "@/types";
 
 const Cidades = () => {
     const objetoNovo: Cidade = {
         id: '',
         nome: '',
-        estado: '',
+        estado: { id: '', nome: '', sigla: '' },
         inventoryStatus: 'DISPONÍVEL'
     };
 
@@ -30,11 +30,12 @@ const Cidades = () => {
     const [objetoDialog, setObjetoDialog] = useState(false);
     const [objetoDeleteDialog, setObjetoDeleteDialog] = useState(false);
     const [submitted, setSubmitted] = useState(false);
-    const [globalFilter, setGlobalFilter] = useState('');
+    const [globalFilter, setGlobalFilter] = useState<string>('');
     const toast = useRef<Toast>(null);
-    const dt = useRef<DataTable<any>>(null);
+    const dt = useRef<DataTable<Cidade>>(null);
     const objetoCidade = useMemo(() => new CidadeService(), []);
     const estadoService = useMemo(() => new EstadoService(), []);
+    const [selectedCidades, setSelectedCidades] = useState<Cidade[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -125,7 +126,7 @@ const Cidades = () => {
                 newObjects[index] = _objeto;
                 return newObjects;
             } else {
-                return [...prevObjetos, _objeto, objeto ];
+                return [...prevObjetos, _objeto, objeto];
             }
         });
     };
@@ -152,16 +153,17 @@ const Cidades = () => {
         dt.current?.exportCSV();
     };
 
-    const confirmDeleteObjeto = (objeto: Cidade) => {
-        setObjeto(objeto);
-        setObjetoDeleteDialog(true);
-    }
+const confirmDeleteObjeto = (objeto: Cidade) => {
+    setSelectedCidades([]);
+    setObjeto(objeto);
+    setObjetoDeleteDialog(true);
+}
 
     const deleteObjeto = async () => {
         try {
             await objetoCidade.excluirCidade(objeto.id);
             if (toast.current) {
-                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000});
+                toast.current.show({ severity: 'success', summary: 'Sucesso', detail: 'Removido', life: 3000 });
             }
             setObjetos(prevObjetos => prevObjetos.filter(obj => obj.id !== objeto.id));
             setObjetoDeleteDialog(false);
@@ -190,10 +192,16 @@ const Cidades = () => {
     };
 
     const leftToolbarTemplate = () => {
+        const deleteSelectedObjetos = () => {
+            if (selectedCidades && selectedCidades.length > 0) {
+                confirmDeleteObjeto(selectedCidades[0]);
+            }
+        };
+
         return (
             <div className="my-2">
                 <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
-                <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={confirmDeleteObjeto} disabled={!objetos || !objetos.length} />
+                <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={deleteSelectedObjetos} disabled={!objetos || !objetos.length} />
             </div>
         );
     };
@@ -246,8 +254,8 @@ const Cidades = () => {
     const statusBodyTemplate = (rowData: Cidade) => {
         return (
             <>
-                <span className="p-column-title">Status</span>
-                <span className={`product-badge status-${rowData.inventoryStatus?.toLowerCase()}`}>{rowData.inventoryStatus}</span>
+                <span className="p-column-title">Sigla Estado</span>
+                <span className={`Sigla dos Estados-${rowData.estado}`}>{rowData.estado.sigla}</span>
             </>
         );
     };
@@ -293,14 +301,19 @@ const Cidades = () => {
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
                         currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} Cidades"
+                        selectionMode="multiple"
+                        selection={selectedCidades}
+                        onSelectionChange={(e) => setSelectedCidades(e.value)}
                         globalFilter={globalFilter}
-                        emptyMessage="Sem objetos cadastrados."
+                        emptyMessage="Sem cidades cadastradas."
                         header={header}
+                        filters={{ 'global': { value: globalFilter, matchMode: 'contains' } }}
                     >
+                        <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
                         <Column field="id" header="Ids" sortable body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="nome" header="Cidades" sortable body={nomeBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
                         <Column field="estado" header="Estados" sortable body={estadoBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
-                        <Column field="inventoryStatus" header="Status" body={statusBodyTemplate} sortable headerStyle={{ minWidth: '10rem' }}></Column>
+                        <Column field="estado" header="Sigla" body={statusBodyTemplate} sortable headerStyle={{ minWidth: '10rem' }}></Column>
                         <Column body={actionBodyTemplate} headerStyle={{ minWidth: '10rem' }}></Column>
                     </DataTable>
 
