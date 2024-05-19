@@ -21,6 +21,8 @@ const Estados = () => {
     };
 
     const [objetos, setObjetos] = useState<Estado[]>([]);
+    const [selectedEstados, setSelectedEstados] = useState<Estado[]>([]);
+
     const [objetoDialog, setObjetoDialog] = useState(false);
     const [objetoDeleteDialog, setObjetoDeleteDialog] = useState(false);
     const [objeto, setObjeto] = useState<Estado>(objetoNovo);
@@ -121,6 +123,7 @@ const Estados = () => {
     }
 
     const confirmDeleteObjeto = (objeto: Estado) => {
+        setSelectedEstados([]);
         setObjeto(objeto);
         setObjetoDeleteDialog(true);
     }
@@ -149,10 +152,16 @@ const Estados = () => {
     };
 
     const leftToolbarTemplate = () => {
+        const deleteSelectedObjetos = () => {
+            if (selectedEstados && selectedEstados.length > 0) {
+                confirmDeleteObjeto(selectedEstados[0]);
+            }
+        };
+
         return (
             <div className="my-2">
-                <Button label="Novo" icon="pi pi-plus" className=" mr-2" onClick={openNew} />
-                <Button label="Excluir" icon="pi pi-trash" className="mr-2" onClick={confirmDeleteObjeto} disabled={!objetos || !objetos.length} />
+                <Button label="Novo" icon="pi pi-plus" severity="success" className=" mr-2" onClick={openNew} />
+                <Button label="Excluir" icon="pi pi-trash" severity="danger" onClick={deleteSelectedObjetos} disabled={!objetos || !objetos.length} />
             </div>
         );
     };
@@ -229,15 +238,18 @@ const Estados = () => {
                         value={objetos}
                         dataKey="id"
                         paginator
-                        rows={5}
+                        rows={10}
                         rowsPerPageOptions={[5, 10, 25]}
                         className="datatable-responsive"
                         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} estados"
+                        currentPageReportTemplate="Mostrando {first} de {last}. Total de {totalRecords} Estados"
+                        selectionMode="multiple"
+                        selection={selectedEstados}
+                        onSelectionChange={(e) => setSelectedEstados(e.value)}
                         globalFilter={globalFilter}
-                        filters={{ 'global': { value: globalFilter, matchMode: 'contains' } }}
-                        emptyMessage="Nenhum objeto cadastrado."
+                        emptyMessage="Sem estados cadastradas."
                         header={header}
+                        filters={{ 'global': { value: globalFilter, matchMode: 'contains' } }}
                     >
                         <Column selectionMode="multiple" headerStyle={{ width: '4rem' }}></Column>
                         <Column field="id" header="Id" body={idBodyTemplate} headerStyle={{ minWidth: '15rem' }}></Column>
