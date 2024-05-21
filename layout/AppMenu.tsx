@@ -84,7 +84,12 @@ const AppMenu = () => {
                 {
                     label: 'Cadastros',
                     icon: 'pi pi-fw pi-briefcase',
-                    to: '/pages/cadastros'
+                    to: '/pages/cadastros',
+                    items: [
+                        { label: 'cidade', icon: 'pi pi-fw pi-bookmark', to: '/pages/cadastros/cidade' },
+                        { label: 'estado', icon: 'pi pi-fw pi-home', to: '/pages/cadastros/estado' },
+                        { label: 'pessoa', icon: 'pi pi-fw pi-user', to: '/pages/cadastros/pessoa' },
+                    ]
                 },
                 {
                     label: 'Crud',
