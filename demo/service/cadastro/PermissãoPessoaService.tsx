@@ -6,6 +6,7 @@ export const axiosInstance = axios.create({
 });
 
 export class PessoaService {
+
     async buscarTodos(): Promise<any> {
         return await axiosInstance.get('/api/estado/');
     }
